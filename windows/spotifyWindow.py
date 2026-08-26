@@ -65,7 +65,7 @@ def parse_song(song):
 
 class SpotifyWindow(Window):
     def __init__(self):
-        pass
+        self.singleton = True
 
     def render(self):
         tracks = []

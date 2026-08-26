@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 class ChatbotWindow(Window):
     def __init__(self):
+        self.singleton = True
         self.html = ""
         self.last_updated = datetime.now()
 
