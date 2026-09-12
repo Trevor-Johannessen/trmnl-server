@@ -1,0 +1,62 @@
+[Unit]
+Description=TRMNL Server (e-ink panel BYOS)
+After=network-online.target presence-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Not root. This reads ~/.credentials/spotify.json, imports the weather and
+# calendar skill modules out of ~/.claude/skills, and runs health.py over ssh
+# to sys1 -- all of which are the user's, on the NFS home. monika runs the same
+# way on this host for the same reasons.
+User=tjohannessen
+WorkingDirectory=/usr/local/bin/trmnl-server
+ExecStart=/usr/local/bin/trmnl-server/venv/bin/python -m trmnl_server --host 0.0.0.0 --port 8015
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+StateDirectory=trmnl-server
+Environment=PYTHONUNBUFFERED=1
+
+# The device is told where to fetch its bitmap, so this must be the address the
+# panel can reach -- not localhost.
+Environment=TRMNL_SERVER_BASE_URL=http://deploy1.sflabs.local:8015
+Environment=TRMNL_SERVER_DATA_DIR=/var/lib/trmnl-server
+
+# Sources. presence-server is on this host; the rest are across the lab.
+Environment=TRMNL_SERVER_PRESENCE_URL=http://127.0.0.1:3344/api/presence
+Environment=TRMNL_SERVER_SPOTIFY_URL=http://pi1.sflabs.local:3339/v1/status
+Environment=TRMNL_SERVER_MINECRAFT_URL=http://minecraft2.sflabs.local:3343
+Environment=TRMNL_SERVER_SKILLS_DIR=/mnt/fs2/home/tjohannessen/.claude/skills
+Environment=TRMNL_SERVER_SPOTIFY_CREDENTIALS=/mnt/fs2/home/tjohannessen/.credentials/spotify.json
+
+# health.py runs on sys1, where its config marks sys1 local and ssh's the rest.
+# Running it locally on deploy1 would check deploy1 twice and sys1 not at all.
+Environment=TRMNL_SERVER_HEALTH_INTERVAL_S=300
+
+# A place name or "lat,lon", exactly as the weather skill takes it. Empty means
+# the Now screen simply omits the weather block.
+Environment=TRMNL_SERVER_WEATHER_LOCATION="Flushing, NY"
+
+# How long the panel is told to sleep, by whether anyone can see it.
+Environment=TRMNL_SERVER_REFRESH_PRESENT_S=60
+Environment=TRMNL_SERVER_REFRESH_ABSENT_S=900
+Environment=TRMNL_SERVER_REFRESH_UNKNOWN_S=300
+Environment=TRMNL_SERVER_REFRESH_NIGHT_S=1800
+
+# Bring-up knob: set to 1 if the panel shows a photographic negative.
+Environment=TRMNL_SERVER_INVERT=0
+
+# The lab's standard event log, and the dashboard it feeds at :8015/metrics.
+# Local disk, never the NFS home -- SQLite locking over NFS is not something to
+# bet a write path on.
+Environment=TRMNL_SERVER_RETENTION_DAYS=0
+Environment=TRMNL_SERVER_CLIENT_NAMES=
+Environment=TRMNL_SERVER_RESOLVE_LOCAL_PROCESS=1
+
+MemoryAccounting=yes
+MemoryHigh=1G
+MemoryMax=2G
+
+[Install]
+WantedBy=multi-user.target

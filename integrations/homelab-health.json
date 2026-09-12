@@ -1,0 +1,11 @@
+{
+  "service": {
+    "name": "trmnl-server",
+    "on": "deploy1",
+    "host": "deploy1",
+    "port": 8015,
+    "scheme": "http",
+    "path": "/healthz"
+  },
+  "deploy1_unit": "trmnl-server.service"
+}
