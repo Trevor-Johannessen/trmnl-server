@@ -1,11 +1,14 @@
 {
-  "_comment": "Append this object to the `dashboards` array in ~/repos/apps/portal/dashboards.json.",
+  "_comment": "Appended to the `dashboards` array in ~/repos/apps/portal/dashboards.json. Short hostnames: portal requires every iframe URL to match the canonical_urls hostname form.",
   "id": "trmnl",
   "name": "TRMNL panel",
   "url": "http://deploy1:8015/metrics",
+  "mode": "iframe",
   "icon": "▤",
   "description": "What the e-ink panel is showing, and how the device is doing",
   "group": "lab",
+  "health": "http://deploy1:8015/healthz",
+  "metrics": "http://deploy1:8015",
   "order": 45,
-  "health": "http://deploy1:8015/healthz"
+  "notes": "HTTP only -- trmnl-server serves no TLS, so the HTTPS portal cannot embed this frame."
 }

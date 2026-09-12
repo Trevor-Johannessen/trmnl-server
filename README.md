@@ -149,6 +149,12 @@ add `.png` for the bitmap as the panel would actually get it. Looking at the
 PNG alone is not enough — a layout that reads fine in greyscale can fall apart
 once it is dithered to two colours.
 
+Registered with portal as `trmnl` (lab group, order 45); it hot-reloads
+`dashboards.json` on mtime, so no restart is needed. The service serves no TLS,
+so portal's HTTPS shell marks it `mixed_content` and links out instead of
+embedding it — give it an HTTPS port like presence-server's 3346 if that
+matters.
+
 Metrics dashboard at `/metrics`. The firmware sends battery, RSSI, firmware
 version, wake reason and awake-time in the headers of **every** poll, so device
 telemetry comes for free; gauges and the `poll` session kind carry it.
