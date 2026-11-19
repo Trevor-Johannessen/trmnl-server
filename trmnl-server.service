@@ -19,8 +19,10 @@ StateDirectory=trmnl-server
 Environment=PYTHONUNBUFFERED=1
 
 # The device is told where to fetch its bitmap, so this must be the address the
-# panel can reach -- not localhost.
-Environment=TRMNL_SERVER_BASE_URL=http://deploy1.sflabs.local:8015
+# panel can reach -- not localhost. The LAN IP, not the hostname: the OG
+# panel's own DNS resolution of .sflabs.local doesn't work, so a hostname
+# here would fail the image_url fetch even after /api/display succeeds.
+Environment=TRMNL_SERVER_BASE_URL=http://192.168.1.106:8015
 Environment=TRMNL_SERVER_DATA_DIR=/var/lib/trmnl-server
 
 # Sources. presence-server is on this host; the rest are across the lab.
@@ -43,6 +45,10 @@ Environment=TRMNL_SERVER_REFRESH_PRESENT_S=60
 Environment=TRMNL_SERVER_REFRESH_ABSENT_S=900
 Environment=TRMNL_SERVER_REFRESH_UNKNOWN_S=300
 Environment=TRMNL_SERVER_REFRESH_NIGHT_S=1800
+
+# The room counts as occupied for this long after the last person was seen, so
+# stepping out for a few minutes does not drop the panel to a 15-minute sleep.
+Environment=TRMNL_SERVER_PRESENCE_GRACE_S=1800
 
 # Bring-up knob: set to 1 if the panel shows a photographic negative.
 Environment=TRMNL_SERVER_INVERT=0

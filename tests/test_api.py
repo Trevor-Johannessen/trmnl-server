@@ -6,6 +6,7 @@ blank panel, so the shape is pinned here.
 """
 import tempfile
 import unittest
+from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
@@ -42,6 +43,41 @@ class Api(unittest.TestCase):
 
     def test_setup_without_an_id_is_rejected(self):
         self.assertEqual(self.client.get("/api/setup").status_code, 400)
+
+    # -- /api/screen -------------------------------------------------------
+
+    def test_current_screen_returns_the_selected_bitmap(self):
+        compose = AsyncMock(return_value=self.token)
+        self.app.state.composer.compose = compose
+
+        response = self.client.get("/api/screen")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"], "image/bmp")
+        self.assertEqual(response.headers["cache-control"], "no-store")
+        self.assertEqual(response.headers["x-trmnl-screen"], "now")
+        self.assertEqual(response.headers["x-trmnl-filename"], f"{self.token}.bmp")
+        self.assertEqual(response.content, b"BM-not-really-a-bitmap")
+        compose.assert_awaited_once_with()
+
+    def test_current_screen_reports_when_nothing_is_rendered(self):
+        self.app.state.composer.compose = AsyncMock(return_value=None)
+        response = self.client.get("/api/screen")
+        self.assertEqual(response.status_code, 503)
+
+    def test_current_screen_json_returns_the_selected_image_url(self):
+        compose = AsyncMock(return_value=self.token)
+        self.app.state.composer.compose = compose
+
+        response = self.client.get("/api/screen.json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "screen": "now",
+            "filename": f"{self.token}.bmp",
+            "image_url": f"http://trmnl.test:8015/image/{self.token}.bmp",
+        })
+        compose.assert_awaited_once_with()
 
     # -- /api/display ------------------------------------------------------
 
@@ -126,4 +162,4 @@ class Api(unittest.TestCase):
         self.assertEqual(self.client.get("/healthz").status_code, 200)
         body = self.client.get("/").json()
         self.assertEqual(body["service"], "trmnl-server")
-        self.assertEqual(body["screens"], ["house", "listening", "now"])
+        self.assertEqual(body["screens"], ["morning", "now"])

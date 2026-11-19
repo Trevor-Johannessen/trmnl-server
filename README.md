@@ -27,13 +27,14 @@ right now and the highest-priority eligible one wins.
 | Priority | Screen | Eligible when | Shows |
 |---:|---|---|---|
 | 1 | House | homelab-health is not `ok` **and** has findings | Failing findings worst-first, plus who is on Minecraft |
-| 2 | Listening | spotify-server reports audio actually moving | Dithered cover, track, artist, album |
-| 3 | Now | always | Clock, date, weather, next two calendar events, presence |
+| 2 | Minecraft | at least one player is online | Online player names, current count, and players seen today |
+| 3 | Listening | spotify-server reports audio actually moving | Dithered cover, track, artist, album |
+| 4 | Now | always | Clock, date, weather icon, next two calendar events |
 
-House is gated on there being something to say. An ungated House would win
-every time and the other two would never appear — the ordering is only
-meaningful because the top of it is conditional. Now is the floor, so
-selection always has an answer.
+House and Minecraft are gated on there being something to say. An ungated
+top screen would win every time and the others would never appear — the
+ordering is only meaningful because those screens are conditional. Now is the
+floor, so selection always has an answer.
 
 Listening keys off `audio.playing` rather than `player.paused`: the first
 reflects PCM actually moving through spotify-server, the second reflects the
@@ -47,12 +48,21 @@ presence-server decides:
 | Presence | Rate |
 |---|---|
 | `present` | 60 s |
+| seen in the last 30 min | 60 s |
 | `absent` | 900 s |
 | `absent`, 23:00–06:00 | 1800 s |
 | `unknown` (camera down) | 300 s |
 
 Presence outranks the clock deliberately: being in the room at midnight is a
 reason to keep the screen current; being out of it at noon is not.
+
+So does having been there recently. Somebody who steps out for a moment comes
+back to the panel, and a 15-minute sleep beginning the instant the room empties
+is what makes it stale exactly when they return. The grace window
+(`TRMNL_SERVER_PRESENCE_GRACE_S`, default 1800 s) is measured from
+presence-server's `last_seen`, which it reports whether or not the room is
+occupied — so it survives a restart of this service, and it outranks the night
+window for the same reason `present` does.
 
 `filename` is a content hash of the rendered bitmap. While it is unchanged the
 device skips the download entirely, so an idle screen costs one JSON round-trip
@@ -137,14 +147,26 @@ repo: deployed copies in this lab have been ahead before. Deploy only via
 ## Poking at it
 
 ```bash
-make test                     # 56 unit tests, no browser needed
+make test                     # unit tests, no browser needed
 make preview                  # every screen to ./data/preview as PNG *and* BMP
 make debug                    # run on :8016 against ./data
 make status                   # what it is showing right now
 curl -s localhost:8015/api/display -H 'ID: aa:bb:cc:11:22:33' | python3 -m json.tool
 ```
 
-`/preview/{house,listening,now}` renders a screen as HTML in a normal browser;
+`GET /api/screen` selects the highest-priority eligible screen and returns the
+panel-ready 800×480 1-bit BMP directly. It is intended for an external
+management server such as Terminus; `/api/display` remains the firmware JSON
+contract. A Terminus extension can embed it as an image with
+`<img src="http://deploy1.sflabs.local:8015/api/screen">`; the Terminus
+container must be able to resolve and reach that URL. Since this endpoint
+returns binary image data, put it in the extension markup rather than using it
+as a JSON exchange URL. For an extension that requires a JSON exchange, use
+`/api/screen.json` and put `{{ source_1.image_url }}` in the image `src`.
+That adapter builds its image URL from the host used for the request, so using
+the server's LAN IP avoids hostname-resolution surprises in a container.
+
+`/preview/{house,minecraft,listening,now}` renders a screen as HTML in a normal browser;
 add `.png` for the bitmap as the panel would actually get it. Looking at the
 PNG alone is not enough — a layout that reads fine in greyscale can fall apart
 once it is dithered to two colours.

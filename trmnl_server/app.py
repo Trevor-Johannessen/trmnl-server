@@ -110,6 +110,63 @@ def create_app(*, config=None, start_background=True):
     def image_url(token: str) -> str:
         return f"{config.base_url}/image/{token}.bmp"
 
+    async def rendered_screen():
+        """Select the current screen and return its stored bitmap."""
+        token = await composer.compose()
+        if not token:
+            raise HTTPException(status_code=503, detail="No screen is rendered")
+
+        path = store.path(token)
+        try:
+            with open(path, "rb") as handle:
+                data = handle.read()
+        except FileNotFoundError:
+            # A concurrent prune or filesystem hiccup should not turn into a
+            # misleading empty image.  The next request can render again.
+            raise HTTPException(status_code=503, detail="Rendered screen is unavailable")
+
+        return token, data
+
+    @app.get("/api/screen")
+    async def current_screen():
+        """Return the freshly selected screen as the panel-ready bitmap.
+
+        This is an integration endpoint for a management server such as
+        Terminus.  The firmware-facing ``/api/display`` endpoint must keep
+        returning the BYOS JSON contract, while this endpoint is useful to a
+        consumer that wants the image bytes themselves.
+        """
+        token, data = await rendered_screen()
+
+        return Response(
+            data,
+            media_type="image/bmp",
+            headers={
+                "Cache-Control": "no-store",
+                "X-TRMNL-Screen": composer.screen_name or "",
+                "X-TRMNL-Filename": f"{token}.bmp",
+            },
+        )
+
+    @app.get("/api/screen.json")
+    async def current_screen_json(request: Request):
+        """JSON adapter for integrations whose data sources require JSON.
+
+        Terminus extensions can use this as their exchange URL and put the
+        returned ``image_url`` in an ``<img>`` tag.  The binary endpoint above
+        remains available for clients that can consume an image response.
+        """
+        token, _ = await rendered_screen()
+        # Build the URL from the address the caller used.  This keeps the
+        # adapter useful when the service is reached by a LAN IP instead of
+        # the hostname configured for the native firmware contract.
+        base_url = str(request.base_url).rstrip("/")
+        return {
+            "screen": composer.screen_name,
+            "filename": f"{token}.bmp",
+            "image_url": f"{base_url}/image/{token}.bmp",
+        }
+
     # -- the device -------------------------------------------------------
 
     @app.get("/api/setup")

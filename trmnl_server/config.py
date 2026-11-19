@@ -46,6 +46,11 @@ class Config:
     night_start_hour: int = 23
     night_end_hour: int = 6
 
+    # How long after the last sighting the room still counts as occupied. A
+    # fifteen-minute sleep starting the moment somebody steps out is how the
+    # panel comes to be stale exactly when they walk back in.
+    presence_grace_s: int = 1800
+
     devices: dict = field(default_factory=dict)
 
     @classmethod
@@ -78,4 +83,5 @@ class Config:
             refresh_night_s=_int("TRMNL_SERVER_REFRESH_NIGHT_S", 1800),
             night_start_hour=_int("TRMNL_SERVER_NIGHT_START_HOUR", 23),
             night_end_hour=_int("TRMNL_SERVER_NIGHT_END_HOUR", 6),
+            presence_grace_s=_int("TRMNL_SERVER_PRESENCE_GRACE_S", 1800),
         )

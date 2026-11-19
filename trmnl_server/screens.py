@@ -2,7 +2,7 @@
 
 A priority stack, not a rotation: every screen says whether it is eligible
 right now, and the highest-priority eligible one wins. House outranks
-Listening outranks Now.
+Minecraft, which outranks Listening, which outranks Now.
 
 House is gated on there being something to say. An ungated House would always
 win and the other two would never appear -- the ordering is only meaningful
@@ -12,10 +12,13 @@ so there is always exactly one answer.
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from . import schedule
 from .config import HEIGHT
 from .layout import Zone, esc
 from .windows import house as house_windows
 from .windows import listening as listening_windows
+from .windows import minecraft as minecraft_windows
+from .windows import morning as morning_windows
 from .windows import now as now_windows
 
 HEAD_PX = 44
@@ -35,10 +38,10 @@ class Context:
     now: datetime = field(default_factory=datetime.now)
 
 
-def frame(title: str, right: str, body: str) -> str:
+def frame(title: str, right: str | None, body: str) -> str:
+    right_html = f'<div class="caps">{right}</div>' if right else ""
     return (
-        f'<div class="head"><div class="caps">{esc(title)}</div>'
-        f'<div class="caps">{right}</div></div>'
+        f'<div class="head"><div class="caps">{esc(title)}</div>{right_html}</div>'
         f'<div style="height:{BODY_PX}px">{body}</div>'
     )
 
@@ -79,56 +82,91 @@ class House(Screen):
         return frame(self.title, esc(counts), zone.render())
 
 
+class Minecraft(Screen):
+    """Minecraft gets the panel whenever at least one player is online."""
+    name = "minecraft"
+    priority = 2
+    title = "Minecraft"
+
+    def eligible(self, ctx):
+        if not (ctx.minecraft and ctx.minecraft.ok):
+            return False
+        return bool(ctx.minecraft.get("online") or ctx.minecraft.get("count", 0))
+
+    def body(self, ctx):
+        data = ctx.minecraft.data or {}
+        online = data.get("online") or []
+        count = data.get("count") or len(online)
+        zone = Zone(
+            direction="row", percentage=58,
+            zone_one=Zone(window=minecraft_windows.Players(ctx.minecraft)),
+            zone_two=Zone(window=minecraft_windows.Stats(ctx.minecraft)))
+        right = "{} online".format(count)
+        return frame(self.title, esc(right), zone.render())
+
+
+class Morning(Screen):
+    """The scheduled morning weather. Shown only inside its window, so it
+    outranks Listening but never the House or a Minecraft game."""
+    name = "morning"
+    priority = 2.5
+    title = "Morning"
+
+    def eligible(self, ctx):
+        return schedule.active(ctx.now)
+
+    def body(self, ctx):
+        if schedule.weekend(ctx.now):
+            window = morning_windows.DateHigh(ctx.now, ctx.weather)
+        else:
+            window = morning_windows.Forecast(ctx.now, ctx.weather)
+        zone = Zone(
+            direction="column", percentage=60,
+            zone_one=Zone(window=window),
+            zone_two=Zone(window=morning_windows.Events(ctx.now, ctx.calendar)))
+        return frame(self.title, None, zone.render())
+
+
 class Listening(Screen):
     """Music is actually moving through the speakers."""
     name = "listening"
-    priority = 2
+    priority = 3
     title = "Listening"
 
     def eligible(self, ctx):
         return bool(ctx.spotify and ctx.spotify.ok and ctx.spotify.get("playing"))
 
     def body(self, ctx):
+        time = esc(ctx.now.strftime("%-I:%M %p").lower())
         zone = Zone(
             direction="row", percentage=44,
-            zone_one=Zone(window=listening_windows.Cover(ctx.art_uri)),
+            zone_one=Zone(window=listening_windows.Cover(ctx.art_uri, time)),
             zone_two=Zone(window=listening_windows.Track(ctx.spotify.data)))
-        return frame(self.title, esc(ctx.now.strftime("%-I:%M %p").lower()), zone.render())
+        return frame(self.title, None, zone.render())
 
 
 class Now(Screen):
     """The floor. Always eligible, so selection always has an answer."""
     name = "now"
-    priority = 3
+    priority = 4
     title = "Now"
 
     def eligible(self, ctx):
         return True
 
-    def _presence_badge(self, ctx):
-        if not (ctx.presence and ctx.presence.ok):
-            return ""
-        state = ctx.presence.get("state")
-        if state == "present":
-            minutes = int((ctx.presence.get("duration_s") or 0) // 60)
-            return f'<span class="badge">in the room {minutes}m</span>'
-        if state == "unknown":
-            return '<span class="badge hollow">camera down</span>'
-        return '<span class="badge hollow">empty</span>'
-
     def body(self, ctx):
-        top = Zone(
-            direction="row", percentage=52,
-            zone_one=Zone(window=now_windows.Clock(ctx.now)),
-            zone_two=Zone(window=now_windows.Weather(ctx.weather)))
-        zone = Zone(
-            direction="column", percentage=62,
-            zone_one=top,
+        lower = Zone(
+            direction="column", percentage=48,
+            zone_one=Zone(window=now_windows.Weather(ctx.weather)),
             zone_two=Zone(window=now_windows.NextEvent(ctx.calendar, ctx.now)))
-        return frame(self.title, self._presence_badge(ctx), zone.render())
+        zone = Zone(
+            direction="column", percentage=45,
+            zone_one=Zone(window=now_windows.Date(ctx.now)),
+            zone_two=lower)
+        return frame(self.title, None, zone.render())
 
 
-SCREENS = [House(), Listening(), Now()]
+SCREENS = [Morning(), Now()]
 
 
 def select(ctx: Context, screens=None) -> Screen:
