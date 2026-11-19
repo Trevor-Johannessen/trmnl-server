@@ -9,6 +9,12 @@ import math
 from . import schedule
 
 
-def refresh_rate(config, presence, now) -> int:
+NOW_MAX_SLEEP_S = 3600  # the Now screen carries the temperature, so refresh hourly
+
+
+def refresh_rate(config, presence, now, screen=None) -> int:
     edge = (schedule.next_boundary(now) - now).total_seconds()
-    return max(60, math.ceil(edge) + 5)
+    sleep = max(60, math.ceil(edge) + 5)
+    if screen == "now":
+        sleep = min(sleep, NOW_MAX_SLEEP_S)
+    return sleep

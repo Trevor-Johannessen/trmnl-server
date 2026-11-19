@@ -19,7 +19,6 @@ from .windows import house as house_windows
 from .windows import listening as listening_windows
 from .windows import minecraft as minecraft_windows
 from .windows import morning as morning_windows
-from .windows import now as now_windows
 
 HEAD_PX = 44
 BODY_PX = HEIGHT - HEAD_PX
@@ -105,6 +104,18 @@ class Minecraft(Screen):
         return frame(self.title, esc(right), zone.render())
 
 
+def _forecast_zone(ctx):
+    """Weather with the upcoming events underneath. Morning and Now share it."""
+    if schedule.weekend(ctx.now):
+        window = morning_windows.DateHigh(ctx.now, ctx.weather)
+    else:
+        window = morning_windows.Forecast(ctx.now, ctx.weather)
+    return Zone(
+        direction="column", percentage=60,
+        zone_one=Zone(window=window),
+        zone_two=Zone(window=morning_windows.Events(ctx.now, ctx.calendar)))
+
+
 class Morning(Screen):
     """The scheduled morning weather. Shown only inside its window, so it
     outranks Listening but never the House or a Minecraft game."""
@@ -116,15 +127,7 @@ class Morning(Screen):
         return schedule.active(ctx.now)
 
     def body(self, ctx):
-        if schedule.weekend(ctx.now):
-            window = morning_windows.DateHigh(ctx.now, ctx.weather)
-        else:
-            window = morning_windows.Forecast(ctx.now, ctx.weather)
-        zone = Zone(
-            direction="column", percentage=60,
-            zone_one=Zone(window=window),
-            zone_two=Zone(window=morning_windows.Events(ctx.now, ctx.calendar)))
-        return frame(self.title, None, zone.render())
+        return frame(self.title, None, _forecast_zone(ctx).render())
 
 
 class Listening(Screen):
@@ -155,15 +158,7 @@ class Now(Screen):
         return True
 
     def body(self, ctx):
-        lower = Zone(
-            direction="column", percentage=48,
-            zone_one=Zone(window=now_windows.Weather(ctx.weather)),
-            zone_two=Zone(window=now_windows.NextEvent(ctx.calendar, ctx.now)))
-        zone = Zone(
-            direction="column", percentage=30,
-            zone_one=Zone(window=now_windows.Date(ctx.now)),
-            zone_two=lower)
-        return frame(self.title, None, zone.render())
+        return frame(self.title, None, _forecast_zone(ctx).render())
 
 
 SCREENS = [Morning(), Now()]

@@ -194,7 +194,7 @@ def create_app(*, config=None, start_background=True):
 
         presence = await sources["presence"].get()
         from datetime import datetime
-        sleep_s = refresh_rate(config, presence, datetime.now())
+        sleep_s = refresh_rate(config, presence, datetime.now(), composer.screen_name)
 
         token = composer.token
         if token is None:
