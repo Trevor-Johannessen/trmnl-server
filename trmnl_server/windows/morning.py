@@ -2,6 +2,7 @@
 from datetime import datetime
 
 from ..layout import Window, esc
+from .now import weather_icon
 
 
 def _date_line(now):
@@ -33,7 +34,8 @@ class Forecast(Window):
         return (
             '<div class="w"><div class="stack">'
             f'{_date_line(self.now)}'
-            f'<div class="now-time"><span class="now-time-main">{esc(data.get("temp") or "—")}</span></div>'
+            f'<div class="now-time"><span class="weather-icon" aria-hidden="true">{weather_icon(data.get("text"))}</span>'
+            f'<span class="now-time-main">{esc(data.get("temp") or "—")}</span></div>'
             f'{_values(("High", data.get("high") or "—"), ("Low", data.get("low") or "—"))}'
             f'<div class="sm clip">{esc(data.get("text") or "")}</div>'
             "</div></div>"
