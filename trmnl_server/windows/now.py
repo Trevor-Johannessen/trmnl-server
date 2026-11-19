@@ -4,24 +4,43 @@ from datetime import datetime
 from ..layout import Window, esc
 
 
+_SUN = ('<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22'
+        'M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>')
+_CLOUD = '<path d="M7 18h10.5a4 4 0 0 0 0-8 6 6 0 0 0-11.6 1.6A3.4 3.4 0 0 0 7 18z"/>'
+_GLYPHS = {
+    "storm": _CLOUD + '<path d="M12.5 13l-2 4h3l-2 4"/>',
+    "snow": _CLOUD + '<path d="M8 21v.01M12 21v.01M16 21v.01"/>',
+    "rain": _CLOUD + '<path d="M8 20l-1 2M12 20l-1 2M16 20l-1 2"/>',
+    "partly": '<g transform="translate(-3 -3)">' + _SUN + '</g>' + _CLOUD,
+    "cloud": _CLOUD,
+    "fog": '<path d="M3 9h18M5 13h14M3 17h18"/>',
+    "sun": _SUN,
+}
+
+
 def weather_icon(condition):
-    """Return a legible monochrome symbol for an AccuWeather phrase."""
+    """Return an inline SVG symbol for an AccuWeather phrase. Glyphs such as
+    U+2600 are not in any font on the panel, so they would draw blank."""
     text = " ".join(str(condition or "").lower().split())
     if any(word in text for word in ("thunder", "storm")):
-        return "⛈"
-    if any(word in text for word in ("snow", "sleet", "flurr", "ice")):
-        return "❄"
-    if any(word in text for word in ("rain", "shower", "drizzle")):
-        return "☂"
-    if "partly" in text and any(word in text for word in ("sun", "cloud")):
-        return "⛅"
-    if any(word in text for word in ("cloud", "overcast")):
-        return "☁"
-    if any(word in text for word in ("fog", "haze", "mist")):
-        return "≋"
-    if any(word in text for word in ("sun", "clear")):
-        return "☀"
-    return "☁"
+        kind = "storm"
+    elif any(word in text for word in ("snow", "sleet", "flurr", "ice")):
+        kind = "snow"
+    elif any(word in text for word in ("rain", "shower", "drizzle")):
+        kind = "rain"
+    elif "partly" in text and any(word in text for word in ("sun", "cloud")):
+        kind = "partly"
+    elif any(word in text for word in ("cloud", "overcast")):
+        kind = "cloud"
+    elif any(word in text for word in ("fog", "haze", "mist")):
+        kind = "fog"
+    elif any(word in text for word in ("sun", "clear")):
+        kind = "sun"
+    else:
+        kind = "cloud"
+    return ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+            'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + _GLYPHS[kind] + "</svg>")
 
 
 class Date(Window):

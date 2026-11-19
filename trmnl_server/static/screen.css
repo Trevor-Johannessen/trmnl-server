@@ -80,7 +80,8 @@ body {
 .track-duration-label { font-size: 18px; font-weight: 700; letter-spacing: 1px;
                         text-transform: uppercase; }
 .weather-reading { display: flex; align-items: center; gap: 12px; }
-.weather-icon { font-size: 52px; line-height: .9; font-weight: 400; }
+.weather-icon { display: inline-block; width: 1em; height: 1em; font-size: 96px; line-height: .9; font-weight: 400; }
+.weather-icon svg { width: 100%; height: 100%; display: block; }
 .now-clock-panel { padding: 11px 22px 10px; }
 .now-time { display: flex; align-items: baseline; gap: 12px; white-space: nowrap; }
 .now-time-main { font-size: 146px; font-weight: 700; letter-spacing: -5px; line-height: .84; }
