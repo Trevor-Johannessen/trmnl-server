@@ -160,7 +160,7 @@ class Now(Screen):
             zone_one=Zone(window=now_windows.Weather(ctx.weather)),
             zone_two=Zone(window=now_windows.NextEvent(ctx.calendar, ctx.now)))
         zone = Zone(
-            direction="column", percentage=45,
+            direction="column", percentage=30,
             zone_one=Zone(window=now_windows.Date(ctx.now)),
             zone_two=lower)
         return frame(self.title, None, zone.render())

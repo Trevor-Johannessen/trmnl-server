@@ -81,7 +81,7 @@ class Weather(Window):
             '<div class="w now-weather-panel">'
             f'<div class="caps">{esc(data.get("location") or "Weather")} {stale}</div>'
             '<div class="now-weather-line">'
-            f'<span class="weather-icon" aria-hidden="true">{icon}</span>'
+            f'<span class="weather-icon" style="font-size:64px" aria-hidden="true">{icon}</span>'
             f'<span class="now-weather-temp">{esc(data.get("temp") or "—")}</span>'
             f'<span class="now-weather-text clip">{esc(data.get("text") or "")}</span>'
             '</div>'
