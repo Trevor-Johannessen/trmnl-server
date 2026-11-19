@@ -31,14 +31,17 @@ class Forecast(Window):
             return (f'<div class="w"><div class="stack">{_date_line(self.now)}'
                     '<div class="empty">—</div></div></div>')
         data = self.reading.data or {}
+        icon = weather_icon(data.get("text"))
         return (
-            '<div class="w"><div class="stack">'
+            '<div class="w" style="display:flex;justify-content:space-between;align-items:center">'
+            '<div class="stack">'
             f'{_date_line(self.now)}'
-            f'<div class="now-time"><span class="weather-icon" aria-hidden="true">{weather_icon(data.get("text"))}</span>'
-            f'<span class="now-time-main">{esc(data.get("temp") or "—")}</span></div>'
+            f'<div class="now-time"><span class="now-time-main">{esc(data.get("temp") or "—")}</span></div>'
             f'{_values(("High", data.get("high") or "—"), ("Low", data.get("low") or "—"))}'
             f'<div class="sm clip">{esc(data.get("text") or "")}</div>'
-            "</div></div>"
+            '</div>'
+            f'<div class="weather-icon" style="font-size:220px;margin-right:24px">{icon}</div>'
+            "</div>"
         )
 
 
